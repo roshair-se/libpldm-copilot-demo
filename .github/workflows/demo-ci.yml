@@ -1,0 +1,46 @@
+name: Demo CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    name: Build and run unit tests
+    runs-on: ubuntu-24.04
+    container: mcr.microsoft.com/devcontainers/base:ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install build tools
+        run: bash .devcontainer/setup.sh
+        env:
+          INSTALL_COPILOT_CLI: "0"
+      - name: Build
+        run: |
+          meson setup build
+          meson compile -C build
+      - name: Run unit tests
+        run: meson test -C build --print-errorlogs
+
+  codespace:
+    name: Codespace setup for both demos
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Create the dev container, prepare both demos and run their tests
+        uses: devcontainers/ci@v0.3
+        with:
+          push: never
+          runCmd: |
+            set -e
+            copilot --version
+            git -C ~/demo3 diff --stat
+            meson test -C build --print-errorlogs
+            meson test -C ~/demo3/build --print-errorlogs

@@ -1,3 +1,7 @@
+> **Demo fork.** This is a fork of [openbmc/libpldm](https://github.com/openbmc/libpldm)
+> for a GitHub Copilot demo. The `demo/*` branches contain deliberate changes,
+> including a deliberate security bug. Don't use this code; use the upstream project.
+
 # libpldm
 
 This is a library which deals with the encoding and decoding of PLDM messages.
