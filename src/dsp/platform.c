@@ -631,7 +631,8 @@ int decode_get_pdr_resp(const struct pldm_msg *msg, size_t payload_length,
 
 	if (msg == NULL || completion_code == NULL ||
 	    next_record_hndl == NULL || next_data_transfer_hndl == NULL ||
-	    transfer_flag == NULL || resp_cnt == NULL || transfer_crc == NULL) {
+	    transfer_flag == NULL || resp_cnt == NULL || transfer_crc == NULL ||
+	    (record_data != NULL && record_data_length == 0)) {
 		return PLDM_ERROR_INVALID_DATA;
 	}
 
