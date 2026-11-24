@@ -1,0 +1,24 @@
+# Prepares the environment for Copilot cloud agent (coding agent):
+# installs meson, ninja and GoogleTest, then configures the build.
+name: Copilot setup steps
+
+on:
+  workflow_dispatch:
+  push:
+    paths: [.github/workflows/copilot-setup-steps.yml]
+  pull_request:
+    paths: [.github/workflows/copilot-setup-steps.yml]
+
+jobs:
+  copilot-setup-steps:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install build tools
+        run: bash .devcontainer/setup.sh
+        env:
+          INSTALL_COPILOT_CLI: "0"
+      - name: Configure the build
+        run: meson setup build
