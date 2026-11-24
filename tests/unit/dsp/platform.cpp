@@ -461,6 +461,43 @@ TEST(GetPDR, testBadDecodeResponse)
     EXPECT_EQ(rc, PLDM_ERROR_INVALID_LENGTH);
 }
 
+TEST(GetPDR, testDecodeResponseUndersizedRecordBuffer)
+{
+    constexpr uint16_t respCnt = 9;
+    constexpr uint8_t transferCRC = 96;
+    std::array<uint8_t, hdrSize + PLDM_GET_PDR_MIN_RESP_BYTES + respCnt +
+                            sizeof(transferCRC)>
+        responseMsg{};
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    auto response = reinterpret_cast<pldm_msg*>(responseMsg.data());
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    auto resp = reinterpret_cast<pldm_get_pdr_resp*>(response->payload);
+    resp->completion_code = PLDM_SUCCESS;
+    resp->transfer_flag = PLDM_END;
+    resp->response_count = htole16(respCnt);
+    memcpy(resp->record_data, "123456789", respCnt);
+    response->payload[PLDM_GET_PDR_MIN_RESP_BYTES + respCnt] = transferCRC;
+
+    uint8_t completionCode = 0;
+    uint32_t nextRecordHndl = 0;
+    uint32_t nextDataTransferHndl = 0;
+    uint8_t transferFlag = 0;
+    uint16_t responseCount = 0;
+    uint8_t crc = 0;
+    // The final byte guards the advertised eight-byte destination.
+    std::array<uint8_t, respCnt> recordData{};
+    recordData.fill(0xa5);
+    const auto expectedRecordData = recordData;
+
+    auto rc = decode_get_pdr_resp(
+        response, responseMsg.size() - hdrSize, &completionCode, &nextRecordHndl,
+        &nextDataTransferHndl, &transferFlag, &responseCount, recordData.data(),
+        recordData.size() - 1, &crc);
+    EXPECT_EQ(rc, PLDM_ERROR_INVALID_LENGTH);
+    EXPECT_EQ(responseCount, respCnt);
+    EXPECT_EQ(recordData, expectedRecordData);
+}
+
 #if HAVE_LIBPLDM_API_TESTING
 TEST(GetPDR, testGoodDecodeResponseSafe)
 {
