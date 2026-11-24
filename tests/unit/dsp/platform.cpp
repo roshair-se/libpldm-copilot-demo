@@ -2512,6 +2512,54 @@ TEST(PlatformEventMessage, testBadDecodeResponse)
     EXPECT_EQ(rc, PLDM_ERROR_INVALID_LENGTH);
 }
 
+TEST(PlatformEventMessage, testSensorEventDataEncodeSizeQuery)
+{
+    size_t actualSize = 0;
+    auto rc =
+        encode_sensor_event_data(nullptr, 0, 0x1234, PLDM_STATE_SENSOR_STATE,
+                                 0x02, 0x03, 0x04, &actualSize);
+
+    EXPECT_EQ(rc, PLDM_SUCCESS);
+    EXPECT_EQ(actualSize, 6u);
+}
+
+TEST(PlatformEventMessage, testSensorEventDataEncodeBufferTooSmall)
+{
+    std::array<uint8_t, 5> eventDataArr{0xaa, 0xaa, 0xaa, 0xaa, 0xaa};
+    const auto original = eventDataArr;
+    size_t actualSize = 99;
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    auto eventData =
+        reinterpret_cast<pldm_sensor_event_data*>(eventDataArr.data());
+
+    auto rc = encode_sensor_event_data(eventData, eventDataArr.size(), 0x1234,
+                                       PLDM_STATE_SENSOR_STATE, 0x02, 0x03,
+                                       0x04, &actualSize);
+
+    EXPECT_EQ(rc, PLDM_ERROR_INVALID_LENGTH);
+    EXPECT_EQ(actualSize, 0u);
+    EXPECT_EQ(eventDataArr, original);
+}
+
+TEST(PlatformEventMessage, testGoodSensorEventDataEncode)
+{
+    std::array<uint8_t, 6> eventDataArr{};
+    const std::array<uint8_t, 6> expected{0x34, 0x12, PLDM_STATE_SENSOR_STATE,
+                                          0x02, 0x03, 0x04};
+    size_t actualSize = 0;
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    auto eventData =
+        reinterpret_cast<pldm_sensor_event_data*>(eventDataArr.data());
+
+    auto rc = encode_sensor_event_data(eventData, eventDataArr.size(), 0x1234,
+                                       PLDM_STATE_SENSOR_STATE, 0x02, 0x03,
+                                       0x04, &actualSize);
+
+    EXPECT_EQ(rc, PLDM_SUCCESS);
+    EXPECT_EQ(actualSize, expected.size());
+    EXPECT_EQ(eventDataArr, expected);
+}
+
 TEST(PlatformEventMessage, testGoodSensorEventDataDecodeRequest)
 {
     std::array<uint8_t, PLDM_SENSOR_EVENT_SENSOR_OP_STATE_DATA_LENGTH +
