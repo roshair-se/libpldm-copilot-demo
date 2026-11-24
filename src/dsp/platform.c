@@ -660,6 +660,10 @@ int decode_get_pdr_resp(const struct pldm_msg *msg, size_t payload_length,
 	}
 
 	if (*resp_cnt > 0 && record_data != NULL) {
+		if (record_data_length < *resp_cnt) {
+			return pldm_msgbuf_discard(buf,
+						   PLDM_ERROR_INVALID_LENGTH);
+		}
 		/* NOTE: Memory safety */
 		rc = pldm_msgbuf_extract_array(buf, *resp_cnt, record_data,
 					       *resp_cnt);
