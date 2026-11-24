@@ -3201,6 +3201,65 @@ TEST(GetNumericEffecterValue, testBadDecodeResponse)
     EXPECT_EQ(rc, PLDM_ERROR_INVALID_DATA);
 }
 
+TEST(PldmPDRRepositoryChgEventEvent, testEncodeRequest)
+{
+    const std::array<uint8_t, 2> operations{PLDM_RECORDS_DELETED,
+                                            PLDM_RECORDS_ADDED};
+    const std::array<uint8_t, 2> entryCounts{2, 1};
+    const std::array<uint32_t, 2> firstEntries{0x12345678, 0x90abcdef};
+    const std::array<uint32_t, 1> secondEntries{0x01234567};
+    const std::array<const uint32_t*, 2> entries{firstEntries.data(),
+                                                 secondEntries.data()};
+    const std::array<uint8_t, 18> expected{
+        {FORMAT_IS_PDR_HANDLES, 2, PLDM_RECORDS_DELETED, 2, 0x78, 0x56, 0x34,
+         0x12, 0xef, 0xcd, 0xab, 0x90, PLDM_RECORDS_ADDED, 1, 0x67, 0x45, 0x23,
+         0x01}};
+    size_t actualSize{};
+
+    auto rc = encode_pldm_pdr_repository_chg_event_data(
+        FORMAT_IS_PDR_HANDLES, operations.size(), nullptr, entryCounts.data(),
+        entries.data(), nullptr, &actualSize, 0);
+    EXPECT_EQ(rc, PLDM_ERROR_INVALID_DATA);
+    rc = encode_pldm_pdr_repository_chg_event_data(
+        FORMAT_IS_PDR_HANDLES, operations.size(), operations.data(), nullptr,
+        entries.data(), nullptr, &actualSize, 0);
+    EXPECT_EQ(rc, PLDM_ERROR_INVALID_DATA);
+    rc = encode_pldm_pdr_repository_chg_event_data(
+        FORMAT_IS_PDR_HANDLES, operations.size(), operations.data(),
+        entryCounts.data(), nullptr, nullptr, &actualSize, 0);
+    EXPECT_EQ(rc, PLDM_ERROR_INVALID_DATA);
+
+    rc = encode_pldm_pdr_repository_chg_event_data(
+        FORMAT_IS_PDR_HANDLES, operations.size(), operations.data(),
+        entryCounts.data(), entries.data(), nullptr, &actualSize, 0);
+    EXPECT_EQ(rc, PLDM_SUCCESS);
+    EXPECT_EQ(actualSize, expected.size());
+
+    std::array<uint8_t, expected.size()> eventData{};
+    eventData.fill(0xff);
+    const auto untouched = eventData;
+    auto event =
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+        reinterpret_cast<pldm_pdr_repository_chg_event_data*>(eventData.data());
+    actualSize = 0;
+    rc = encode_pldm_pdr_repository_chg_event_data(
+        FORMAT_IS_PDR_HANDLES, operations.size(), operations.data(),
+        entryCounts.data(), entries.data(), event, &actualSize,
+        eventData.size() - 1);
+    EXPECT_EQ(rc, PLDM_ERROR_INVALID_LENGTH);
+    EXPECT_EQ(actualSize, expected.size());
+    EXPECT_EQ(eventData, untouched);
+
+    actualSize = 0;
+    rc = encode_pldm_pdr_repository_chg_event_data(
+        FORMAT_IS_PDR_HANDLES, operations.size(), operations.data(),
+        entryCounts.data(), entries.data(), event, &actualSize,
+        eventData.size());
+    EXPECT_EQ(rc, PLDM_SUCCESS);
+    EXPECT_EQ(actualSize, expected.size());
+    EXPECT_EQ(eventData, expected);
+}
+
 TEST(PldmPDRRepositoryChgEventEvent, testGoodDecodeRequest)
 {
     const uint8_t eventDataFormat = FORMAT_IS_PDR_HANDLES;
